@@ -178,24 +178,24 @@ cd intercept-j
 
 Do not commit an API key to `application.properties`, source code, or this repository.
 
-Set the key as an environment variable named `OPENAI\_API\_KEY`.
+Set the key as an environment variable named `OPENAI_API_KEY`.
 
 ### Windows Command Prompt
 
 ```cmd
-set OPENAI\_API\_KEY=your-key-here
+set OPENAI_API_KEY=your-key-here
 ```
 
 ### Windows PowerShell
 
 ```powershell
-$env:OPENAI\_API\_KEY="your-key-here"
+$env:OPENAI_API_KEY="your-key-here"
 ```
 
 ### macOS / Linux
 
 ```bash
-export OPENAI\_API\_KEY="your-key-here"
+export OPENAI_API_KEY="your-key-here"
 ```
 
 ### Eclipse
@@ -203,7 +203,7 @@ export OPENAI\_API\_KEY="your-key-here"
 1. Open **Run > Run Configurations**.
 2. Select the Intercept-J Spring Boot configuration.
 3. Open the **Environment** tab.
-4. Add `OPENAI\_API\_KEY` and its value.
+4. Add `OPENAI_API_KEY` and its value.
 5. Do not store or publish screenshots containing the secret value.
 
 The `control` profile does not require LLM access for its direct Java execution path.
@@ -276,13 +276,13 @@ user        local development username
 The experimental runner accepts a scenario identifier and repetition count. For example, after starting the desired profile:
 
 ```bash
-curl -u user:<PASSWORD> -X POST "http://localhost:8080/api/experiments/run?scenarioId=PI-002\&repetitions=1"
+curl -u user:<PASSWORD> -X POST "http://localhost:8080/api/experiments/run?scenarioId=PI-002&repetitions=1"
 ```
 
 For a 20-repetition experimental batch:
 
 ```bash
-curl -u user:<PASSWORD> -X POST "http://localhost:8080/api/experiments/run?scenarioId=PI-002\&repetitions=20"
+curl -u user:<PASSWORD> -X POST "http://localhost:8080/api/experiments/run?scenarioId=PI-002&repetitions=20"
 ```
 
 Replace `PI-002` with any scenario ID from the catalog above. Run only scenarios applicable to the active mode when reproducing the study protocol.

@@ -267,7 +267,7 @@ Spring Security may generate a development-only password at application startup 
 Examples in this README use placeholders:
 
 ```text
-user      local development username
+user        local development username
 <PASSWORD>  local development password
 ```
 
@@ -388,7 +388,7 @@ The final study reported the following principal results:
 |Unauthorized Tool Execution Rate|88.89%|0.00%|
 |Policy Enforcement Rate|N/A|100.00%|
 
-In Mode 3, 220 requests reached policy evaluation and all 220 produced the expected deterministic authorization outcome. No false-positive or false-negative authorization outcomes were observed in the evaluated sample.
+In Mode 3, the 240 total runs included 20 PI-001 trials in which the LLM did not generate the targeted tool request. The remaining 220 requests reached policy evaluation, comprising 60 legitimate requests and 160 unauthorized requests. All 220 produced the expected deterministic authorization outcome. The 60 legitimate requests were allowed, while all 160 unauthorized requests were blocked. No false-positive or false-negative authorization outcomes were observed in the evaluated sample.
 
 The measured Mode 3 protected-path latency was:
 

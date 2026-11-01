@@ -17,11 +17,14 @@ import com.chiragshah.interceptj.tool.ToolRegistry;
 public class ToolExecutionGateway {
 
     private final ToolRegistry toolRegistry;
+    private final GatewayExecutionContext executionContext;
 
     public ToolExecutionGateway(
-            ToolRegistry toolRegistry) {
+            ToolRegistry toolRegistry,
+            GatewayExecutionContext executionContext) {
 
         this.toolRegistry = toolRegistry;
+        this.executionContext = executionContext;
     }
 
     @ProtectedToolExecution
@@ -49,10 +52,15 @@ public class ToolExecutionGateway {
                         startTime);
             }
 
-            Object output =
-                    invokeTool(
-                            tool,
-                            request.arguments());
+            Object output;
+
+            try (GatewayExecutionContext.ExecutionScope ignored =
+                    executionContext.enter()) {
+
+                output = invokeTool(
+                        tool,
+                        request.arguments());
+            }
 
             return new ToolResult<>(
                     request.requestId(),

@@ -1,0 +1,7 @@
+warmup_invocations=200
+measured_invocations=1000
+mean_ms=0.042045
+median_ms=0.037100
+standard_deviation_ms=0.022645
+p95_ms=0.076300
+p99_ms=0.133800

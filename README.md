@@ -53,6 +53,16 @@ The security boundary deliberately separates:
 
 An LLM can therefore request a privileged operation, but it cannot grant itself the application-managed role or attributes needed to authorize that operation.
 
+### Relationship to Spring Security and Spring AI
+
+Intercept-J builds on rather than replaces Spring Security and Spring AI. Spring Security supplies web authentication and service-level method authorization, while Spring AI supplies model integration, tool registration, and tool-calling infrastructure. Intercept-J adds an AI-specific mediation path that converts model-generated requests into structured `ToolRequest` objects, combines them with application-controlled `UserContext` data, evaluates tool names and arguments through deterministic RBAC and ABAC policies, and records request, authorization, and execution events separately.
+
+### Complete Mediation and Bypass Resistance
+
+All AI-facing tool callbacks submit requests through `ToolExecutionGateway`; they are not permitted to access `ToolRegistry` or enterprise tool implementations directly. The gateway opens a narrowly scoped execution context only after the request enters the designated path. Spring Security method authorization on the `EnterpriseTool` interface rejects direct invocation of any Spring-managed enterprise tool outside that context. The Intercept-J AOP interceptor remains responsible for AI-specific RBAC and ABAC evaluation at the gateway, so the service-level safeguard does not duplicate policy rules.
+
+The build also includes ArchUnit rules that prevent classes in the `agent`, `experiment`, `config`, `controller`, and `bridge` package patterns from depending directly on enterprise tool implementations or `ToolRegistry`. These controls combine runtime rejection with build-time dependency verification. They protect correctly configured Spring-managed execution paths, but do not claim to resist compromised application code, bytecode manipulation, or operations created outside the Spring container.
+
 ## Technology Stack
 
 The evaluated prototype used:
@@ -64,7 +74,7 @@ The evaluated prototype used:
 * Spring Security
 * Maven
 * OpenAI `gpt-5-mini` for AI-enabled experiments
-* JUnit for automated tests
+* JUnit and ArchUnit for automated tests
 
 Development and testing were performed with Eclipse, although the project can also be built and run from a command line with Maven.
 
@@ -93,7 +103,7 @@ The proof-of-concept contains three representative enterprise tools:
 
 ### Calculator
 
-A benign arithmetic operation used across the three experimental modes and as the common operation for performance comparison.
+An authorized arithmetic operation used across the three experimental modes and as the common operation for performance comparison.
 
 ### Customer Lookup
 
@@ -107,7 +117,7 @@ A privileged administrative operation used to test RBAC, ABAC, and prompt-inject
 
 The prototype demonstrates deterministic policies including:
 
-* calculator operations are permitted as a benign tool capability;
+* calculator operations are permitted as an authorized tool capability;
 * customer lookup requires an `ANALYST` or `MANAGER` role;
 * customer lookup requires the user's authorized region to match the requested region;
 * administrative actions require the `ADMIN` role;
@@ -122,7 +132,7 @@ The same Spring Boot codebase supports three Spring profiles.
 
 |Mode|Spring profile|Configuration|Purpose|
 |-|-|-|-|
-|Mode 1|`control`|Direct Java tool execution without an LLM or Intercept-J|Establishes the non-AI application performance control|
+|Mode 1|`control`|Gateway-mediated Java execution without an LLM or policy enforcement|Establishes the non-AI application performance control|
 |Mode 2|`ai-unprotected`|Spring AI and OpenAI enabled without Intercept-J authorization enforcement|Establishes the unprotected AI security and performance baseline|
 |Mode 3|`ai-protected`|Spring AI and OpenAI enabled with Intercept-J authorization and auditing|Measures security effectiveness and enforcement cost|
 
@@ -206,33 +216,49 @@ export OPENAI_API_KEY="your-key-here"
 4. Add `OPENAI_API_KEY` and its value.
 5. Do not store or publish screenshots containing the secret value.
 
-The `control` profile does not require LLM access for its direct Java execution path.
+The `control` profile does not require LLM access for its gateway-mediated Java execution path.
 
 ## Build and Test
 
-Run the automated test suite before starting experimental executions:
+Run the complete automated verification suite before starting experimental executions. The command runs unit, integration, bypass-resistance, and architecture tests together without calling the external LLM:
 
 ### Maven Wrapper on Windows
 
 ```cmd
-mvnw.cmd test
+mvnw.cmd clean verify
 ```
 
 ### Maven Wrapper on macOS / Linux
 
 ```bash
-./mvnw test
+./mvnw clean verify
 ```
 
 If Maven is installed globally:
 
 ```bash
-mvn test
+mvn clean verify
 ```
 
-A successful build should report zero test failures and zero test errors.
+A successful build should report zero test failures, zero test errors, and no architecture-rule violations.
 
-In Eclipse, the equivalent workflow is **Right-click project > Run As > Maven test** or **Run As > JUnit Test**.
+After the final audit-lifecycle and Spring Security method-authorization additions, a successful automated suite should report:
+
+```text
+Tests run: 23, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+This total includes two ArchUnit complete-mediation rules, integration tests that verify rejection of direct calls to all three Spring-managed enterprise tools while permitting gateway-mediated execution, and audit tests confirming distinct request, authorization, and execution lifecycle records.
+
+The verification run also performs 200 local warm-up invocations followed by 1,000 measured protected-path invocations. It does not call the external LLM. Results are written to:
+
+```text
+target/benchmark-results/complete-mediation-performance.csv
+target/benchmark-results/complete-mediation-performance-summary.txt
+```
+
+In Eclipse, the equivalent workflow is **Right-click project > Run As > Maven build**, with `clean verify` entered as the goals.
 
 ## Run the Application
 
@@ -361,22 +387,26 @@ This distinction prevents variable model and network latency from being attribut
 
 ## Experimental Data
 
-The `experimental-data/` directory contains the raw final CSV files used for the reported evaluation:
+The `experimental-data/` directory preserves the raw files from the original 500-run security evaluation and separately provides the dedicated complete-mediation performance benchmark:
 
 ```text
 experimental-data/
 |-- mode1-final-results.csv
 |-- mode2-final-results.csv
-`-- mode3-final-results.csv
+|-- mode3-final-results.csv
+|-- complete-mediation-performance.csv
+`-- complete-mediation-performance-summary.txt
 ```
 
-|File|Configuration|Final runs|
+|File|Configuration|Observations|
 |-|-|-:|
-|`mode1-final-results.csv`|Non-AI Control|20|
-|`mode2-final-results.csv`|Unprotected AI Baseline|240|
-|`mode3-final-results.csv`|Intercept-J Protected AI|240|
+|`mode1-final-results.csv`|Non-AI Control|20 runs|
+|`mode2-final-results.csv`|Unprotected AI Baseline|240 runs|
+|`mode3-final-results.csv`|Intercept-J Protected AI|240 runs|
+|`complete-mediation-performance.csv`|Hardened protected path after 200 warm-ups|1,000 measurements|
+|`complete-mediation-performance-summary.txt`|Summary statistics for the dedicated benchmark|1 summary|
 
-Together, the three files contain the 500 final experimental runs reported in the manuscript. Warm-up observations are not included in these final datasets.
+The three mode files contain the 500 final experimental runs reported in the original security evaluation. They remain unchanged to preserve the provenance and reproducibility of those findings. The two complete-mediation performance files are additional validation artifacts generated from the hardened implementation; they do not replace the original mode files.
 
 ## Reported Results
 
@@ -390,34 +420,49 @@ The final study reported the following principal results:
 
 In Mode 3, the 240 total runs included 20 PI-001 trials in which the LLM did not generate the targeted tool request. The remaining 220 requests reached policy evaluation, comprising 60 legitimate requests and 160 unauthorized requests. All 220 produced the expected deterministic authorization outcome. The 60 legitimate requests were allowed, while all 160 unauthorized requests were blocked. No false-positive or false-negative authorization outcomes were observed in the evaluated sample.
 
-The measured Mode 3 protected-path latency was:
+### Original Mixed-Scenario Latency
+
+Across the 220 policy-evaluated requests in the original Mode 3 security experiment, the measured protected-path latency was:
 
 * mean: 0.5663 ms
 * median: 0.4689 ms
 * p95: 0.9064 ms
 
-These measurements characterize the evaluated prototype and workload. They should not be interpreted as universal production performance or a guarantee of zero security risk.
+### Dedicated Complete-Mediation Performance Validation
+
+After the complete-mediation controls were added, a separate local benchmark performed 200 warm-up invocations followed by 1,000 measured authorized calculator invocations through the protected gateway path. It made no external LLM calls and produced:
+
+* mean: 0.042045 ms
+* median: 0.037100 ms
+* standard deviation: 0.022645 ms
+* p95: 0.076300 ms
+* p99: 0.133800 ms
+
+The original and dedicated latency values should not be interpreted as a direct before-and-after performance comparison. The original value came from 220 mixed security scenarios, whereas the dedicated benchmark used a homogeneous authorized operation, explicit JVM warm-up, and 1,000 local measurements. Both sets of measurements characterize their respective evaluated workloads and should not be interpreted as universal production performance or a guarantee of zero security risk.
 
 ## Reproducibility Notes
 
 * AI-enabled results depend on external model behavior and may change across model versions, providers, time periods, or API configurations.
 * The final study used one OpenAI model, `gpt-5-mini`.
 * Each applicable scenario was repeated 20 times.
+* The original 500-run security results are retained separately from the post-hardening complete-mediation validation.
+* The hardened implementation is expected to report 23 automated tests, including both complete-mediation architecture rules and the new audit-lifecycle verification. Confirm this count with `clean verify` in the reproduction environment.
 * Zero observed protected-mode attacks, false positives, or false negatives should not be interpreted as zero population risk.
-* The study did not conduct a controlled concurrent load or throughput test.
+* The dedicated performance benchmark used 200 warm-ups and 1,000 sequential local invocations; it was not a concurrent load or throughput test.
 * The administrative tool performs a simulated operation rather than modifying production infrastructure.
 * The prototype uses experiment-oriented in-memory auditing; production deployments should use durable and integrity-protected audit storage.
 
 ## Security Scope
 
-Intercept-J protects tool requests that pass through the designated Java enforcement path. The research prototype assumes that the Java application, trusted identity context, and policy configuration have not themselves been compromised.
+Intercept-J protects Spring-managed enterprise tools through a gateway-scoped runtime boundary and automated architecture rules. The research prototype assumes that the Java application, trusted identity context, policy configuration, and compiled bytecode have not themselves been compromised.
 
 The current security claim does not cover:
 
 * compromise of the Java process or application code;
 * compromise of the identity provider or trusted user context;
 * malicious modification of policy configuration;
-* application paths deliberately designed to bypass the protected gateway;
+* malicious modification of application code, bytecode, or architecture-test configuration;
+* direct execution of tool objects instantiated manually outside the Spring container;
 * production-scale distributed or multi-agent deployments.
 
 ## Research Use
@@ -452,4 +497,3 @@ No license is assumed by this README. If the repository does not yet contain a `
 Chirag Shah
 
 GitHub: [https://github.com/cshah3492](https://github.com/cshah3492)
-

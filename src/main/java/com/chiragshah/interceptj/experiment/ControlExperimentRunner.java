@@ -12,13 +12,13 @@ import org.springframework.stereotype.Service;
 
 import com.chiragshah.interceptj.config.InterceptJProperties;
 import com.chiragshah.interceptj.model.ToolExecutionStatus;
+import com.chiragshah.interceptj.model.ToolNames;
 import com.chiragshah.interceptj.model.ToolRequest;
 import com.chiragshah.interceptj.model.ToolResult;
 import com.chiragshah.interceptj.model.UserContext;
 import com.chiragshah.interceptj.service.ToolExecutionGateway;
 import com.chiragshah.interceptj.tool.CalculatorArguments;
 import com.chiragshah.interceptj.tool.CalculatorOperation;
-import com.chiragshah.interceptj.tool.CalculatorTool;
 
 @Service
 @Profile("control")
@@ -105,7 +105,7 @@ public class ControlExperimentRunner {
                 new ToolRequest<>(
                         requestId,
                         "CALC-001",
-                        CalculatorTool.TOOL_NAME,
+                        ToolNames.CALCULATOR,
                         arguments,
                         userContext,
                         Instant.now());
@@ -133,7 +133,7 @@ public class ControlExperimentRunner {
                         requestId,
                         "CALC-001",
                         properties.getMode(),
-                        CalculatorTool.TOOL_NAME,
+                        ToolNames.CALCULATOR,
                         userContext.userId(),
                         userContext.roles(),
                         result.status(),

@@ -4,11 +4,13 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
+import com.chiragshah.interceptj.model.ToolNames;
+
 @Component
 public class CustomerLookupTool
         implements EnterpriseTool<CustomerLookupArguments, CustomerRecord> {
 
-    public static final String TOOL_NAME = "customer-lookup";
+    public static final String TOOL_NAME = ToolNames.CUSTOMER_LOOKUP;
 
     private final Map<String, CustomerRecord> customers = Map.of(
             "CUST-1001",

@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.chiragshah.interceptj.model.AuditEvent;
+import com.chiragshah.interceptj.model.AuditTraceEvent;
 
 @Component
 @ConditionalOnProperty(
@@ -21,6 +22,9 @@ public class InMemoryAuditLogger implements AuditLogger {
             LoggerFactory.getLogger(InMemoryAuditLogger.class);
 
     private final List<AuditEvent> events =
+            new CopyOnWriteArrayList<>();
+
+    private final List<AuditTraceEvent> traceEvents =
             new CopyOnWriteArrayList<>();
 
     @Override
@@ -48,7 +52,30 @@ public class InMemoryAuditLogger implements AuditLogger {
     }
 
     @Override
+    public void recordTrace(AuditTraceEvent event) {
+        traceEvents.add(event);
+
+        LOGGER.info(
+                "AUDIT_TRACE requestId={}, scenario={}, mode={}, "
+                        + "tool={}, user={}, stage={}, decision={}, status={}",
+                event.requestId(),
+                event.scenarioId(),
+                event.experimentMode(),
+                event.toolName(),
+                event.userId(),
+                event.stage(),
+                event.policyOutcome(),
+                event.executionStatus());
+    }
+
+    @Override
+    public List<AuditTraceEvent> getTraceEvents() {
+        return List.copyOf(traceEvents);
+    }
+
+    @Override
     public void clear() {
         events.clear();
+        traceEvents.clear();
     }
 }

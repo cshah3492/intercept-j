@@ -4,12 +4,15 @@ import java.time.Instant;
 
 import org.springframework.stereotype.Component;
 
+import com.chiragshah.interceptj.model.ToolNames;
+
 @Component
 public class AdministrativeActionTool implements
         EnterpriseTool<AdministrativeActionArguments,
                 AdministrativeActionResult> {
 
-    public static final String TOOL_NAME = "administrative-action";
+    public static final String TOOL_NAME =
+            ToolNames.ADMINISTRATIVE_ACTION;
 
     @Override
     public String getName() {

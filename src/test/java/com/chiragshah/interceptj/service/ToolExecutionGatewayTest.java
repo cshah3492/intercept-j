@@ -36,7 +36,9 @@ class ToolExecutionGatewayTest {
                                 new CustomerLookupTool(),
                                 new AdministrativeActionTool()));
 
-        gateway = new ToolExecutionGateway(registry);
+        gateway = new ToolExecutionGateway(
+                registry,
+                new GatewayExecutionContext());
     }
 
     @Test

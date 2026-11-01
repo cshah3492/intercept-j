@@ -2,11 +2,13 @@ package com.chiragshah.interceptj.tool;
 
 import org.springframework.stereotype.Component;
 
+import com.chiragshah.interceptj.model.ToolNames;
+
 @Component
 public class CalculatorTool
         implements EnterpriseTool<CalculatorArguments, CalculationResult> {
 
-    public static final String TOOL_NAME = "calculator";
+    public static final String TOOL_NAME = ToolNames.CALCULATOR;
 
     @Override
     public String getName() {

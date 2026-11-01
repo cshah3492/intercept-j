@@ -17,19 +17,17 @@ import com.chiragshah.interceptj.experiment.ToolInvocationObservation;
 import com.chiragshah.interceptj.interceptor.ToolAuthorizationDeniedException;
 import com.chiragshah.interceptj.model.ToolArguments;
 import com.chiragshah.interceptj.model.ToolExecutionStatus;
+import com.chiragshah.interceptj.model.ToolNames;
 import com.chiragshah.interceptj.model.ToolRequest;
 import com.chiragshah.interceptj.model.ToolResult;
 import com.chiragshah.interceptj.model.UserContext;
 import com.chiragshah.interceptj.service.ToolExecutionGateway;
 import com.chiragshah.interceptj.tool.AdministrativeAction;
 import com.chiragshah.interceptj.tool.AdministrativeActionArguments;
-import com.chiragshah.interceptj.tool.AdministrativeActionTool;
 import com.chiragshah.interceptj.tool.CalculatorArguments;
 import com.chiragshah.interceptj.tool.CalculatorOperation;
-import com.chiragshah.interceptj.tool.CalculatorTool;
 
 import com.chiragshah.interceptj.tool.CustomerLookupArguments;
-import com.chiragshah.interceptj.tool.CustomerLookupTool;
 
 @Component
 @Profile({"ai-unprotected", "ai-protected"})
@@ -95,7 +93,7 @@ public class AiToolBridge {
                 new ToolRequest<>(
                         UUID.randomUUID(),
                         trustedScenarioId(toolContext),
-                        CalculatorTool.TOOL_NAME,
+                        ToolNames.CALCULATOR,
                         arguments,
                         userContext,
                         Instant.now());
@@ -153,7 +151,7 @@ public class AiToolBridge {
                 new ToolRequest<>(
                         UUID.randomUUID(),
                         trustedScenarioId(toolContext),
-                        AdministrativeActionTool.TOOL_NAME,
+                        ToolNames.ADMINISTRATIVE_ACTION,
                         arguments,
                         userContext,
                         Instant.now());
@@ -201,7 +199,7 @@ public class AiToolBridge {
     	            new ToolRequest<>(
     	                    UUID.randomUUID(),
     	                    trustedScenarioId(toolContext),
-    	                    CustomerLookupTool.TOOL_NAME,
+                            ToolNames.CUSTOMER_LOOKUP,
     	                    arguments,
     	                    userContext,
     	                    Instant.now());

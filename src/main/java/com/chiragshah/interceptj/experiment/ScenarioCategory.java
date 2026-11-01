@@ -2,7 +2,7 @@ package com.chiragshah.interceptj.experiment;
 
 public enum ScenarioCategory {
 
-    BENIGN_OPERATION,
+    AUTHORIZED_OPERATION,
     UNAUTHORIZED_TOOL_REQUEST,
     PROMPT_INJECTION
 }

@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 import com.chiragshah.interceptj.audit.AuditLogger;
 import com.chiragshah.interceptj.config.InterceptJProperties;
 import com.chiragshah.interceptj.model.AuditEvent;
+import com.chiragshah.interceptj.model.AuditStage;
+import com.chiragshah.interceptj.model.AuditTraceEvent;
 import com.chiragshah.interceptj.model.PolicyDecision;
 import com.chiragshah.interceptj.model.ToolArguments;
 import com.chiragshah.interceptj.model.ToolExecutionStatus;
@@ -59,8 +61,24 @@ public class ToolExecutionAspect {
         ToolRequest<? extends ToolArguments> request =
                 findToolRequest(joinPoint);
 
+        recordTrace(
+                request,
+                AuditStage.REQUEST_RECEIVED,
+                null,
+                ToolExecutionStatus.NOT_ATTEMPTED,
+                "Protected tool request received.");
+
         PolicyDecision decision =
                 authorizationService.authorize(request);
+
+        recordTrace(
+                request,
+                AuditStage.AUTHORIZATION_DECIDED,
+                decision,
+                decision.isAllowed()
+                        ? ToolExecutionStatus.NOT_ATTEMPTED
+                        : ToolExecutionStatus.BLOCKED,
+                decision.reason());
 
         if (!decision.isAllowed()) {
 
@@ -71,29 +89,43 @@ public class ToolExecutionAspect {
                     decision.reason(),
                     startTime);
 
+            recordTrace(
+                    request,
+                    AuditStage.EXECUTION_COMPLETED,
+                    decision,
+                    ToolExecutionStatus.BLOCKED,
+                    "Execution prevented by authorization decision.");
+
             throw new ToolAuthorizationDeniedException(
                     decision);
         }
 
         try {
 
-        	Object result = joinPoint.proceed();
+            Object result = joinPoint.proceed();
 
-        	ToolExecutionStatus executionStatus =
-        	        ToolExecutionStatus.EXECUTED;
+            ToolExecutionStatus executionStatus =
+                    ToolExecutionStatus.EXECUTED;
 
-        	if (result instanceof ToolResult<?> toolResult) {
-        	    executionStatus = toolResult.status();
-        	}
+            if (result instanceof ToolResult<?> toolResult) {
+                executionStatus = toolResult.status();
+            }
 
-        	recordAudit(
-        	        request,
-        	        decision,
-        	        executionStatus,
-        	        decision.reason(),
-        	        startTime);
+            recordAudit(
+                    request,
+                    decision,
+                    executionStatus,
+                    decision.reason(),
+                    startTime);
 
-        	return result;
+            recordTrace(
+                    request,
+                    AuditStage.EXECUTION_COMPLETED,
+                    decision,
+                    executionStatus,
+                    "Protected execution completed.");
+
+            return result;
 
         } catch (Throwable exception) {
 
@@ -107,8 +139,40 @@ public class ToolExecutionAspect {
                                     .getSimpleName(),
                     startTime);
 
+            recordTrace(
+                    request,
+                    AuditStage.EXECUTION_COMPLETED,
+                    decision,
+                    ToolExecutionStatus.FAILED,
+                    "Protected execution failed: "
+                            + exception.getClass().getSimpleName());
+
             throw exception;
         }
+    }
+
+    private void recordTrace(
+            ToolRequest<? extends ToolArguments> request,
+            AuditStage stage,
+            PolicyDecision decision,
+            ToolExecutionStatus status,
+            String detail) {
+
+        auditLogger.recordTrace(
+                new AuditTraceEvent(
+                        UUID.randomUUID(),
+                        request.requestId(),
+                        request.scenarioId(),
+                        properties.getMode(),
+                        request.toolName(),
+                        request.userContext().userId(),
+                        stage,
+                        decision == null
+                                ? null
+                                : decision.outcome(),
+                        status,
+                        detail,
+                        Instant.now()));
     }
 
     private void recordAudit(
